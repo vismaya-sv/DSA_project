@@ -1,0 +1,180 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* -------- BST FOR INVENTORY -------- */
+struct Product {
+    int productID;
+    char name[50];
+    int stock;
+    struct Product *left, *right;
+};
+
+/* -------- LINKED LIST FOR TRANSACTIONS -------- */
+struct Transaction {
+    int productID;
+    char type[20];   // Purchase or Sale
+    int quantity;
+    struct Transaction *next;
+};
+
+struct Transaction *history = NULL;
+
+/* -------- CREATE NEW PRODUCT -------- */
+struct Product* createProduct(int id, char name[], int stock) {
+    struct Product* newNode = (struct Product*)malloc(sizeof(struct Product));
+    newNode->productID = id;
+    strcpy(newNode->name, name);
+    newNode->stock = stock;
+    newNode->left = newNode->right = NULL;
+    return newNode;
+}
+
+/* -------- INSERT INTO BST -------- */
+struct Product* insertProduct(struct Product* root, int id, char name[], int stock) {
+    if (root == NULL)
+        return createProduct(id, name, stock);
+
+    if (id < root->productID)
+        root->left = insertProduct(root->left, id, name, stock);
+    else if (id > root->productID)
+        root->right = insertProduct(root->right, id, name, stock);
+
+    return root;
+}
+
+/* -------- SEARCH PRODUCT -------- */
+struct Product* searchProduct(struct Product* root, int id) {
+    if (root == NULL || root->productID == id)
+        return root;
+
+    if (id < root->productID)
+        return searchProduct(root->left, id);
+    else
+        return searchProduct(root->right, id);
+}
+
+/* -------- DISPLAY INVENTORY -------- */
+void displayProducts(struct Product* root) {
+    if (root != NULL) {
+        displayProducts(root->left);
+        printf("ID: %d | Name: %s | Stock: %d\n",
+               root->productID, root->name, root->stock);
+        displayProducts(root->right);
+    }
+}
+
+/* -------- ADD TRANSACTION -------- */
+void addTransaction(int id, char type[], int qty) {
+    struct Transaction* newT = (struct Transaction*)malloc(sizeof(struct Transaction));
+    newT->productID = id;
+    strcpy(newT->type, type);
+    newT->quantity = qty;
+    newT->next = history;
+    history = newT;
+}
+
+/* -------- DISPLAY TRANSACTION HISTORY -------- */
+void displayTransactions() {
+    struct Transaction* temp = history;
+    if (temp == NULL) {
+        printf("No transactions found.\n");
+        return;
+    }
+
+    printf("\nTransaction History:\n");
+    while (temp != NULL) {
+        printf("Product ID: %d | %s | Quantity: %d\n",
+               temp->productID, temp->type, temp->quantity);
+        temp = temp->next;
+    }
+}
+
+/* -------- MAIN MENU -------- */
+int main() {
+    struct Product* root = NULL;
+    int choice, id, stock, qty;
+    char name[50];
+
+    while (1) {
+        printf("\n====== Inventory Management System ======\n");
+        printf("1. Add New Product\n");
+        printf("2. Search Product\n");
+        printf("3. Update Stock (Purchase/Sale)\n");
+        printf("4. Display Inventory\n");
+        printf("5. View Transaction History\n");
+        printf("6. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                printf("Enter Product ID: ");
+                scanf("%d", &id);
+                printf("Enter Product Name: ");
+                scanf("%s", name);
+                printf("Enter Initial Stock: ");
+                scanf("%d", &stock);
+                root = insertProduct(root, id, name, stock);
+                printf("Product added successfully!\n");
+                break;
+
+            case 2:
+                printf("Enter Product ID to search: ");
+                scanf("%d", &id);
+                struct Product* p = searchProduct(root, id);
+                if (p != NULL)
+                    printf("Found -> ID: %d | Name: %s | Stock: %d\n",
+                           p->productID, p->name, p->stock);
+                else
+                    printf("Product not found!\n");
+                break;
+
+            case 3:
+                printf("Enter Product ID: ");
+                scanf("%d", &id);
+                p = searchProduct(root, id);
+                if (p == NULL) {
+                    printf("Product not found!\n");
+                    break;
+                }
+
+                printf("1. Purchase\n2. Sale\nChoose: ");
+                scanf("%d", &choice);
+                printf("Enter quantity: ");
+                scanf("%d", &qty);
+
+                if (choice == 1) {
+                    p->stock += qty;
+                    addTransaction(id, "Purchase", qty);
+                    printf("Stock updated successfully.\n");
+                } else if (choice == 2) {
+                    if (p->stock >= qty) {
+                        p->stock -= qty;
+                        addTransaction(id, "Sale", qty);
+                        printf("Stock updated successfully.\n");
+                    } else {
+                        printf("Insufficient stock!\n");
+                    }
+                }
+                break;
+
+            case 4:
+                printf("\nInventory List:\n");
+                displayProducts(root);
+                break;
+
+            case 5:
+                displayTransactions();
+                break;
+
+            case 6:
+                printf("Exiting system...\n");
+                exit(0);
+
+            default:
+                printf("Invalid choice!\n");
+        }
+    }
+    return 0;
+}
